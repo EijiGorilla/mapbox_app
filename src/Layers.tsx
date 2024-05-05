@@ -10,32 +10,79 @@ import {
 } from 'react-leaflet';
 import { useLeafletContext } from '@react-leaflet/core';
 // Refernce: https://javascript.plainenglish.io/react-leaflet-v3-creating-a-mapping-application-d5477f19bdeb
-
+import L from 'leaflet';
 const Layers = (props: any) => {
   // const [usaData, setUsaData] = useState<any>(['Alabama', 'Ohio']);
   const [initialData, setInitialData] = useState<any>(props.data);
   const [usaData, setUsaData] = useState<any | null>([]);
+  const [popupText, setPopupText] = useState<any>();
+  const [popupClicked, setPopupClicked] = useState<boolean>(false);
 
   // Call useMap
   // const map = useMap();
-  // const map = useMapEvents({
-  //   zoomend: () => {
-  //     // console.log(map.getZoom());
-  //   },
-  //   moveend: () => {
-  //     // console.log(map.getBounds());
-  //   },
-  // });
+
+  const map = useMapEvents({
+    zoomend: () => {
+      // console.log(map.getZoom());
+    },
+    moveend: () => {
+      // console.log(map.getBounds());
+    },
+  });
 
   // Use the map methods
   // console.log('Map Bounds:', map.getBounds());
   // console.log('Zoom Level:', map.getZoom());
+  // Popup
+  var popup = L.popup({
+    closeOnClick: false,
+  });
 
   useEffect(() => {
-    if (props.state !== null) {
+    if (props.state && props.state !== 'All') {
       setUsaData(props.state);
+
+      // Filter props.data based on selected props.state
+      const filtered_data = props.data.filter((a: any) => a.properties.name === props.state);
+      const border = L.geoJSON(filtered_data[0]);
+      map.fitBounds(border.getBounds());
+
+      // If i want to open popup, when a state is selected from the drop-down list
+      const popup_name = filtered_data[0].properties.name;
+      popup.setLatLng(border.getBounds().getCenter());
+      const state_name = `<b>${popup_name}</b>`;
+      popup.setContent(state_name);
+      popup.openOn(map);
+
+      //  const zoomGeometry = filtered_data[0].geometry.coordinates[0];
+      // map.flyToBounds(zoomGeometry);
+    } else if (props.state === 'All') {
+      const border_all = L.geoJSON(props.data);
+      map.fitBounds(border_all.getBounds());
     }
   }, [props.state]);
+
+  // Label
+  //   label = new L.Label()
+  // label.setContent("static label")
+  // label.setLatLng(polygon.getBounds().getCenter())
+  // map.showLabel(label);
+
+  // Popup
+  useEffect(() => {
+    if (props.data[0]) {
+      const filtered_data = props.data.filter((a: any) => a.properties.name === popupText);
+      const border = L.geoJSON(filtered_data[0]);
+      const popup_name = filtered_data[0].properties.name;
+      const popup_density = filtered_data[0].properties.density;
+      popup.setLatLng(border.getBounds().getCenter());
+      const popup_contents = `<b>${popup_name}</b> </br>
+                              Populatin density: ${popup_density}  
+                              `;
+      popup.setContent(popup_contents);
+      popup.openOn(map);
+    }
+  }, [popupText, popupClicked]);
 
   // filter geoJson layer
   // make sure to use props.state instead of useState
@@ -64,12 +111,13 @@ const Layers = (props: any) => {
       <GeoJSON
         key={JSON.stringify(props.data, usaData, props.state)}
         data={props.data}
-        // eventHandlers={{
-        //   click: (event: any) => {
-        //     //console.log(event.layer.feature.properties.name);
-        //     setUsaData(event.layer.feature.properties.name);
-        //   },
-        // }}
+        eventHandlers={{
+          click: (event: any) => {
+            const id = event.layer.feature.properties.name;
+            setPopupText(id);
+            setPopupClicked(popupClicked === false ? true : false); // this ensures popupClicked is changed when clicked
+          },
+        }}
         filter={props.state === null ? initialFilterGeo : filterGeo}
         style={setColor}
       />
