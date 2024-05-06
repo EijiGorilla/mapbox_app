@@ -11,6 +11,8 @@ import {
 import { useLeafletContext } from '@react-leaflet/core';
 // Refernce: https://javascript.plainenglish.io/react-leaflet-v3-creating-a-mapping-application-d5477f19bdeb
 import L from 'leaflet';
+import './App.css';
+
 const Layers = (props: any) => {
   // const [usaData, setUsaData] = useState<any>(['Alabama', 'Ohio']);
   const [initialData, setInitialData] = useState<any>(props.data);
@@ -48,11 +50,11 @@ const Layers = (props: any) => {
       map.fitBounds(border.getBounds());
 
       // If i want to open popup, when a state is selected from the drop-down list
-      const popup_name = filtered_data[0].properties.name;
-      popup.setLatLng(border.getBounds().getCenter());
-      const state_name = `<b>${popup_name}</b>`;
-      popup.setContent(state_name);
-      popup.openOn(map);
+      // const popup_name = filtered_data[0].properties.name;
+      // popup.setLatLng(border.getBounds().getCenter());
+      // const state_name = `<b>${popup_name}</b>`;
+      // popup.setContent(state_name);
+      // popup.openOn(map);
 
       //  const zoomGeometry = filtered_data[0].geometry.coordinates[0];
       // map.flyToBounds(zoomGeometry);
@@ -63,26 +65,44 @@ const Layers = (props: any) => {
   }, [props.state]);
 
   // Label
-  //   label = new L.Label()
-  // label.setContent("static label")
-  // label.setLatLng(polygon.getBounds().getCenter())
-  // map.showLabel(label);
+  function onEachFeature(feature: any, layer: any) {
+    // does this feature have a property named popupContent?
+    if (feature.properties) {
+      layer.bindTooltip(feature.properties.name, {
+        permanent: true,
+        direction: 'center',
+        className: 'my-labels',
+      });
+      layer.on('click', (event: any) => {
+        const popup_name = feature.properties.name;
+        const popup_density = feature.properties.density;
+        const popup_contents = `<b style="color:blue">${popup_name}</b> </br>
+                                    Populatin density: ${popup_density}
+                                    `;
+        layer.bindPopup(popup_contents);
+      });
+    }
+  }
+
+  // L.geoJSON(props.data, {
+  //   onEachFeature: onEachFeature,
+  // }).addTo(map);
 
   // Popup
-  useEffect(() => {
-    if (props.data[0]) {
-      const filtered_data = props.data.filter((a: any) => a.properties.name === popupText);
-      const border = L.geoJSON(filtered_data[0]);
-      const popup_name = filtered_data[0].properties.name;
-      const popup_density = filtered_data[0].properties.density;
-      popup.setLatLng(border.getBounds().getCenter());
-      const popup_contents = `<b>${popup_name}</b> </br>
-                              Populatin density: ${popup_density}  
-                              `;
-      popup.setContent(popup_contents);
-      popup.openOn(map);
-    }
-  }, [popupText, popupClicked]);
+  // useEffect(() => {
+  //   if (props.data[0]) {
+  //     const filtered_data = props.data.filter((a: any) => a.properties.name === popupText);
+  //     const border = L.geoJSON(filtered_data[0]);
+  //     const popup_name = filtered_data[0].properties.name;
+  //     const popup_density = filtered_data[0].properties.density;
+  //     popup.setLatLng(border.getBounds().getCenter());
+  //     const popup_contents = `<b>${popup_name}</b> </br>
+  //                             Populatin density: ${popup_density}
+  //                             `;
+  //     popup.setContent(popup_contents);
+  //     popup.openOn(map);
+  //   }
+  // }, [popupText, popupClicked]);
 
   // filter geoJson layer
   // make sure to use props.state instead of useState
@@ -114,12 +134,13 @@ const Layers = (props: any) => {
         eventHandlers={{
           click: (event: any) => {
             const id = event.layer.feature.properties.name;
-            setPopupText(id);
-            setPopupClicked(popupClicked === false ? true : false); // this ensures popupClicked is changed when clicked
+            // setPopupText(id);
+            // setPopupClicked(popupClicked === false ? true : false); // this ensures popupClicked is changed when clicked
           },
         }}
         filter={props.state === null ? initialFilterGeo : filterGeo}
         style={setColor}
+        onEachFeature={onEachFeature}
       />
       <Marker position={[44.0011, -92.92177]}>
         <Popup>
